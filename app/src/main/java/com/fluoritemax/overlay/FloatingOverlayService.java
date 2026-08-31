@@ -12,7 +12,6 @@ import android.os.Build;
 import android.os.IBinder;
 import android.view.Gravity;
 import android.view.KeyEvent;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 
@@ -23,11 +22,11 @@ public class FloatingOverlayService extends Service {
 
     private WindowManager windowManager;
     private FluoriteMenuView menuView;
-    private View floatingBadge;
     private WindowManager.LayoutParams menuParams;
-    private WindowManager.LayoutParams badgeParams;
 
     private boolean isMenuVisible = true;
+    private int savedMenuX = 0;
+    private int savedMenuY = 0;
 
     @Override
     public void onCreate() {
@@ -47,7 +46,7 @@ public class FloatingOverlayService extends Service {
             overlayType = WindowManager.LayoutParams.TYPE_PHONE;
         }
 
-        // 1. Main Menu View Window Parameters (Normal flags: screenshots allowed, shows in recording)
+        // Setup Main Menu Window Parameters (NO floating badge, clean overlay)
         menuParams = new WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -68,25 +67,27 @@ public class FloatingOverlayService extends Service {
 
             @Override
             public void onDrag(int dx, int dy) {
-                menuParams.x += dx;
-                menuParams.y += dy;
-                try {
-                    windowManager.updateViewLayout(menuView, menuParams);
-                } catch (Exception ignored) {}
+                if (isMenuVisible) {
+                    savedMenuX += dx;
+                    savedMenuY += dy;
+                    menuParams.x = savedMenuX;
+                    menuParams.y = savedMenuY;
+                    try {
+                        windowManager.updateViewLayout(menuView, menuParams);
+                    } catch (Exception ignored) {}
+                }
             }
 
             @Override
             public void onStreamproofToggled(boolean enabled) {
                 setStreamproof(enabled);
             }
-        });
-
-        // Dedicated Key Listener for PgDn (PageDown) and PgUp hotkeys
-        menuView.setFocusableInTouchMode(true);
-        menuView.setOnKeyListener(new View.OnKeyListener() {
+        }) {
+            // Override dispatchKeyEvent to guarantee key interception even when collapsed
             @Override
-            public boolean onKey(View v, int keyCode, KeyEvent event) {
+            public boolean dispatchKeyEvent(KeyEvent event) {
                 if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                    int keyCode = event.getKeyCode();
                     if (keyCode == KeyEvent.KEYCODE_PAGE_DOWN ||
                         keyCode == KeyEvent.KEYCODE_PAGE_UP ||
                         keyCode == KeyEvent.KEYCODE_INSERT) {
@@ -94,68 +95,52 @@ public class FloatingOverlayService extends Service {
                         return true;
                     }
                 }
-                return false;
+                return super.dispatchKeyEvent(event);
             }
-        });
+        };
 
-        // 2. Floating Mini Badge Window Parameters with FLAG_SECURE (Invisible in Screen Recording / SS)
-        badgeParams = new WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            overlayType,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE |
-            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS |
-            WindowManager.LayoutParams.FLAG_SECURE, // Completely hidden from screen recorders & capture
-            PixelFormat.TRANSLUCENT
-        );
-        badgeParams.gravity = Gravity.TOP | Gravity.START;
-        badgeParams.x = 40;
-        badgeParams.y = 120;
+        menuView.setFocusable(true);
+        menuView.setFocusableInTouchMode(true);
 
-        floatingBadge = new FloatingButtonView(this, new FloatingButtonView.BadgeListener() {
-            @Override
-            public void onClick() {
-                toggleMenuVisibility(!isMenuVisible);
-            }
-
-            @Override
-            public void onMove(int deltaX, int deltaY) {
-                badgeParams.x += deltaX;
-                badgeParams.y += deltaY;
-                try {
-                    windowManager.updateViewLayout(floatingBadge, badgeParams);
-                } catch (Exception ignored) {}
-            }
-        });
-
-        // Add Views to WindowManager
+        // Add Menu to WindowManager
         try {
-            windowManager.addView(floatingBadge, badgeParams);
             windowManager.addView(menuView, menuParams);
             menuView.requestFocus();
-            // Automatically hide floating badge when menu is open so screen is ultra clean
-            updateBadgeVisibility();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
     public void toggleMenuVisibility(boolean show) {
-        isMenuVisible = show;
+        this.isMenuVisible = show;
         if (menuView != null) {
-            menuView.setVisibility(show ? View.VISIBLE : View.GONE);
             if (show) {
-                menuView.requestFocus();
+                // Restore full menu visibility and original coordinates
+                menuView.setVisibility(View.VISIBLE);
+                menuParams.width = WindowManager.LayoutParams.WRAP_CONTENT;
+                menuParams.height = WindowManager.LayoutParams.WRAP_CONTENT;
+                menuParams.x = savedMenuX;
+                menuParams.y = savedMenuY;
+                menuParams.flags = WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL |
+                                   WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS;
+                try {
+                    windowManager.updateViewLayout(menuView, menuParams);
+                    menuView.requestFocus();
+                } catch (Exception ignored) {}
+            } else {
+                // Hide menu completely while maintaining key focus so PgDn / PgUp still works
+                menuView.setVisibility(View.INVISIBLE);
+                menuParams.width = 1;
+                menuParams.height = 1;
+                menuParams.x = -5000;
+                menuParams.y = -5000;
+                menuParams.flags = WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL |
+                                   WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS;
+                try {
+                    windowManager.updateViewLayout(menuView, menuParams);
+                    menuView.requestFocus();
+                } catch (Exception ignored) {}
             }
-        }
-        updateBadgeVisibility();
-    }
-
-    private void updateBadgeVisibility() {
-        if (floatingBadge != null) {
-            // When menu is OPEN, hide the floating round icon
-            // When menu is CLOSED, show floating icon with FLAG_SECURE so it is invisible to screen recording
-            floatingBadge.setVisibility(isMenuVisible ? View.GONE : View.VISIBLE);
         }
     }
 
@@ -201,7 +186,7 @@ public class FloatingOverlayService extends Service {
 
         return builder
             .setContentTitle("Fluorite Max • Active")
-            .setContentText("Press PgUp / PgDn on keyboard to Show / Hide menu")
+            .setContentText("Press PgDn / PgUp on keyboard to Show / Hide menu")
             .setSmallIcon(android.R.drawable.ic_menu_compass)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
@@ -216,13 +201,8 @@ public class FloatingOverlayService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if (windowManager != null) {
-            if (menuView != null) {
-                try { windowManager.removeView(menuView); } catch (Exception ignored) {}
-            }
-            if (floatingBadge != null) {
-                try { windowManager.removeView(floatingBadge); } catch (Exception ignored) {}
-            }
+        if (windowManager != null && menuView != null) {
+            try { windowManager.removeView(menuView); } catch (Exception ignored) {}
         }
     }
 
