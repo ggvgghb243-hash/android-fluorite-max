@@ -22,17 +22,17 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Setup Gradle 8.5
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.5'
 
-      - name: Build with Gradle
+      - name: Build APK with Gradle
         run: |
           gradle assembleDebug --no-daemon --stacktrace
-
-      - name: Prepare Artifact
-        run: |
+          
           mkdir -p output_apk
-          find app/build -name "*.apk" -exec cp {} output_apk/FluoriteMax.apk \;
+          cp app/build/outputs/apk/debug/*.apk output_apk/FluoriteMax.apk || cp $(find app/build -name "*.apk" | head -n 1) output_apk/FluoriteMax.apk
           ls -lh output_apk/
 
       - name: Upload Android APK Artifact
