@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ui_main_bg">#FA0A0D15</color>
+    <color name="ui_sidebar_bg">#FF07090F</color>
+    <color name="ui_tab_active">#FF0F1422</color>
+    <color name="ui_accent">#FF1852FF</color>
+    <color name="ui_accent_light">#FF2060FF</color>
+    <color name="ui_text_main">#FFEBF0FA</color>
+    <color name="ui_text_muted">#FF7D8AA0</color>
+    <color name="ui_box_bg">#FF101522</color>
+    <color name="ui_box_border">#FF1C263A</color>
+    <color name="ui_header_bg">#FF0D111C</color>
+    <color name="ui_header_border">#FF161E30</color>
+    <color name="ui_divider">#FF141A28</color>
+</resources>

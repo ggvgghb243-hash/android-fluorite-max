@@ -1,0 +1,2 @@
+rootProject.name = "FluoriteMax"
+include ':app'

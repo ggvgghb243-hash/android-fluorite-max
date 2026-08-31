@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.FluoriteMax" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/ui_accent</item>
+        <item name="colorSecondary">@color/ui_accent_light</item>
+        <item name="android:statusBarColor">@color/ui_header_bg</item>
+        <item name="android:navigationBarColor">@color/ui_sidebar_bg</item>
+    </style>
+</resources>

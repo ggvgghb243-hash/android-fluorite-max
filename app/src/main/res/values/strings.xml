@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Fluorite Max</string>
+    <string name="overlay_service_running">Fluorite Max Overlay is running. Press PgUp or PgDown on Emulator keyboard to toggle.</string>
+</resources>
