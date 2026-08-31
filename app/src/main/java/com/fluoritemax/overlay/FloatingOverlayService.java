@@ -28,6 +28,7 @@ public class FloatingOverlayService extends Service {
     private WindowManager.LayoutParams badgeParams;
 
     private boolean isMenuVisible = true;
+    private boolean isStreamproofEnabled = false; // Streamproof toggle
 
     @Override
     public void onCreate() {
@@ -47,14 +48,13 @@ public class FloatingOverlayService extends Service {
             overlayType = WindowManager.LayoutParams.TYPE_PHONE;
         }
 
-        // 1. Setup Menu View Window Parameters with FLAG_SECURE (Screen Record & Screenshot Proof)
+        // 1. Setup Menu View Window Parameters (Normal flags so screenshots work everywhere)
         menuParams = new WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             overlayType,
             WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL |
-            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS |
-            WindowManager.LayoutParams.FLAG_SECURE, // Prevents recording and screenshots
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT
         );
         menuParams.gravity = Gravity.CENTER;
@@ -74,6 +74,11 @@ public class FloatingOverlayService extends Service {
                 try {
                     windowManager.updateViewLayout(menuView, menuParams);
                 } catch (Exception ignored) {}
+            }
+
+            @Override
+            public void onStreamproofToggled(boolean enabled) {
+                setStreamproof(enabled);
             }
         });
 
@@ -96,14 +101,13 @@ public class FloatingOverlayService extends Service {
             }
         });
 
-        // 2. Setup Floating Mini Badge Window Parameters with FLAG_SECURE
+        // 2. Setup Floating Mini Badge Window Parameters
         badgeParams = new WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             overlayType,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE |
-            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS |
-            WindowManager.LayoutParams.FLAG_SECURE, // Prevents recording and screenshots
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT
         );
         badgeParams.gravity = Gravity.TOP | Gravity.START;
@@ -144,6 +148,21 @@ public class FloatingOverlayService extends Service {
                 menuView.requestFocus();
             }
         }
+    }
+
+    public void setStreamproof(boolean enabled) {
+        this.isStreamproofEnabled = enabled;
+        if (enabled) {
+            menuParams.flags |= WindowManager.LayoutParams.FLAG_SECURE;
+            badgeParams.flags |= WindowManager.LayoutParams.FLAG_SECURE;
+        } else {
+            menuParams.flags &= ~WindowManager.LayoutParams.FLAG_SECURE;
+            badgeParams.flags &= ~WindowManager.LayoutParams.FLAG_SECURE;
+        }
+        try {
+            if (menuView != null) windowManager.updateViewLayout(menuView, menuParams);
+            if (floatingBadge != null) windowManager.updateViewLayout(floatingBadge, badgeParams);
+        } catch (Exception ignored) {}
     }
 
     private void createNotificationChannel() {

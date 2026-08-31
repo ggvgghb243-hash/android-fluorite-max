@@ -31,6 +31,7 @@ public class FluoriteMenuView extends FrameLayout {
     public interface MenuListener {
         void onCloseRequested();
         void onDrag(int dx, int dy);
+        void onStreamproofToggled(boolean enabled);
     }
 
     public interface DropdownSelectionListener {
@@ -362,8 +363,10 @@ public class FluoriteMenuView extends FrameLayout {
         buildInfo.setPadding(0, dp(2), 0, dp(6));
         list.addView(buildInfo);
 
-        // Checkbox: Streamproof (default unchecked)
-        addCheckbox(list, "Streamproof", false, null);
+        // Checkbox: Streamproof (default unchecked, allows user to toggle anti-screen-record mode)
+        addCheckbox(list, "Streamproof", false, (buttonView, isChecked) -> {
+            if (listener != null) listener.onStreamproofToggled(isChecked);
+        });
 
         // Dropdown: Language
         addDropdown(list, "Language", "English", new String[]{"English", "Spanish", "Portuguese", "Russian", "Arabic"});
