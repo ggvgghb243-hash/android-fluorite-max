@@ -29,7 +29,7 @@ public class MainActivity extends Activity {
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setGravity(Gravity.CENTER_HORIZONTAL);
-        layout.setPadding(40, 60, 40, 60);
+        layout.setPadding(40, 50, 40, 50);
 
         // Header Title
         TextView title = new TextView(this);
@@ -45,71 +45,90 @@ public class MainActivity extends Activity {
         subtitle.setTextSize(14);
         subtitle.setTextColor(0xFF1852FF);
         subtitle.setGravity(Gravity.CENTER);
-        subtitle.setPadding(0, 8, 0, 40);
+        subtitle.setPadding(0, 8, 0, 30);
         layout.addView(subtitle);
 
         // Instruction Card
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setBackgroundColor(0xFF101522);
-        card.setPadding(30, 30, 30, 30);
-        
+        card.setPadding(30, 25, 30, 25);
+
         TextView cardTitle = new TextView(this);
-        cardTitle.setText("⌨️ Emulator Keyboard Hotkeys");
-        cardTitle.setTextSize(16);
+        cardTitle.setText("⌨️ PgDn Keybind Show / Hide Instructions");
+        cardTitle.setTextSize(15);
         cardTitle.setTextColor(0xFFEBF0FA);
         cardTitle.setTypeface(null, android.graphics.Typeface.BOLD);
         card.addView(cardTitle);
 
         TextView cardDesc = new TextView(this);
         cardDesc.setText(
-            "• PageUp (PgUp)   : Show / Hide Menu\n" +
-            "• PageDown (PgDn) : Show / Hide Menu\n" +
-            "• Floating Badge  : Click/Drag to Toggle\n" +
-            "• Runs in background over any emulator game (Free Fire, etc.)"
+            "1. Press [START OVERLAY SERVICE] below.\n" +
+            "2. Click [ENABLE PGDN GLOBAL HOTKEY] to allow PgDn detection during gameplay.\n" +
+            "3. Press PageDown (PgDn) on keyboard anytime to Show / Hide menu seamlessly!"
         );
-        cardDesc.setTextSize(13);
+        cardDesc.setTextSize(12.5f);
         cardDesc.setTextColor(0xFF7D8AA0);
-        cardDesc.setLineSpacing(10, 1.2f);
-        cardDesc.setPadding(0, 15, 0, 0);
+        cardDesc.setLineSpacing(8, 1.2f);
+        cardDesc.setPadding(0, 12, 0, 0);
         card.addView(cardDesc);
 
         layout.addView(card);
 
-        // Launch Button
+        // 1. Launch Button
         Button btnStart = new Button(this);
         btnStart.setText("START OVERLAY SERVICE");
         btnStart.setTextColor(0xFFFFFFFF);
         btnStart.setBackgroundColor(0xFF1852FF);
-        btnStart.setTextSize(15);
+        btnStart.setTextSize(14);
         btnStart.setTypeface(null, android.graphics.Typeface.BOLD);
-        btnStart.setPadding(0, 25, 0, 25);
+        btnStart.setPadding(0, 22, 0, 22);
         LinearLayout.LayoutParams btnParams = new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
         );
-        btnParams.setMargins(0, 40, 0, 15);
+        btnParams.setMargins(0, 30, 0, 12);
         btnStart.setLayoutParams(btnParams);
-        btnStart.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                checkOverlayPermissionAndStart();
-            }
-        });
+        btnStart.setOnClickListener(v -> checkOverlayPermissionAndStart());
         layout.addView(btnStart);
 
-        // Stop Button
+        // 2. Enable Accessibility Hotkey Button
+        Button btnAccess = new Button(this);
+        btnAccess.setText("ENABLE PGDN GLOBAL HOTKEY");
+        btnAccess.setTextColor(0xFFEBF0FA);
+        btnAccess.setBackgroundColor(0xFF1C263A);
+        btnAccess.setTextSize(13);
+        btnAccess.setPadding(0, 20, 0, 20);
+        LinearLayout.LayoutParams accessParams = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        accessParams.setMargins(0, 0, 0, 12);
+        btnAccess.setLayoutParams(accessParams);
+        btnAccess.setOnClickListener(v -> {
+            try {
+                Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
+                startActivity(intent);
+                Toast.makeText(this, "Turn ON 'Fluorite Max' in Accessibility to enable PgDn in-game", Toast.LENGTH_LONG).show();
+            } catch (Exception e) {
+                Toast.makeText(this, "Please open Settings > Accessibility", Toast.LENGTH_SHORT).show();
+            }
+        });
+        layout.addView(btnAccess);
+
+        // 3. Stop Button
         Button btnStop = new Button(this);
         btnStop.setText("STOP SERVICE");
         btnStop.setTextColor(0xFF7D8AA0);
-        btnStop.setBackgroundColor(0xFF161E30);
-        btnStop.setTextSize(14);
-        btnStop.setPadding(0, 20, 0, 20);
-        btnStop.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                stopService(new Intent(MainActivity.this, FloatingOverlayService.class));
-                Toast.makeText(MainActivity.this, "Overlay Service Stopped", Toast.LENGTH_SHORT).show();
-            }
+        btnStop.setBackgroundColor(0xFF0D111C);
+        btnStop.setTextSize(13);
+        btnStop.setPadding(0, 18, 0, 18);
+        LinearLayout.LayoutParams stopParams = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        stopParams.setMargins(0, 0, 0, 20);
+        btnStop.setLayoutParams(stopParams);
+        btnStop.setOnClickListener(v -> {
+            stopService(new Intent(MainActivity.this, FloatingOverlayService.class));
+            Toast.makeText(MainActivity.this, "Overlay Service Stopped", Toast.LENGTH_SHORT).show();
         });
         layout.addView(btnStop);
 
@@ -142,8 +161,7 @@ public class MainActivity extends Activity {
         } else {
             startService(intent);
         }
-        Toast.makeText(this, "Fluorite Max Started! Press PgUp / PgDn to Toggle", Toast.LENGTH_SHORT).show();
-        // Move task to back so user is immediately back in game/emulator
+        Toast.makeText(this, "Fluorite Max Started! Press PgDn to Show / Hide", Toast.LENGTH_SHORT).show();
         moveTaskToBack(true);
     }
 

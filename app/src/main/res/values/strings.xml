@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">Fluorite Max</string>
-    <string name="overlay_service_running">Fluorite Max Overlay is running. Press PgUp or PgDown on Emulator keyboard to toggle.</string>
+    <string name="overlay_service_running">Fluorite Max Overlay is running. Press PgDn / PgUp on keyboard to toggle.</string>
+    <string name="accessibility_desc">Allows Fluorite Max to detect PgDn/PgUp hotkeys while playing games.</string>
 </resources>

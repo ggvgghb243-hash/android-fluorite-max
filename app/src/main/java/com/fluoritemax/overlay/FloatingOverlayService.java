@@ -5,8 +5,10 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.PixelFormat;
 import android.os.Build;
 import android.os.IBinder;
@@ -17,22 +19,42 @@ import android.view.WindowManager;
 
 public class FloatingOverlayService extends Service {
 
+    public static final String ACTION_TOGGLE_MENU = "com.fluoritemax.TOGGLE_MENU";
     private static final String CHANNEL_ID = "fluorite_max_overlay_channel";
     private static final int NOTIFICATION_ID = 9999;
 
     private WindowManager windowManager;
     private FluoriteMenuView menuView;
+    private View invisibleTrigger;
     private WindowManager.LayoutParams menuParams;
+    private WindowManager.LayoutParams triggerParams;
 
     private boolean isMenuVisible = true;
     private int savedMenuX = 0;
     private int savedMenuY = 0;
+
+    private final BroadcastReceiver hotkeyReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (ACTION_TOGGLE_MENU.equals(intent.getAction())) {
+                toggleMenuVisibility(!isMenuVisible);
+            }
+        }
+    };
 
     @Override
     public void onCreate() {
         super.onCreate();
         createNotificationChannel();
         startForeground(NOTIFICATION_ID, createNotification());
+
+        // Register Global Hotkey Broadcast Receiver
+        IntentFilter filter = new IntentFilter(ACTION_TOGGLE_MENU);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(hotkeyReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(hotkeyReceiver, filter);
+        }
 
         windowManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
         initViews();
@@ -46,7 +68,7 @@ public class FloatingOverlayService extends Service {
             overlayType = WindowManager.LayoutParams.TYPE_PHONE;
         }
 
-        // Setup Main Menu Window Parameters (NO floating badge, clean overlay)
+        // 1. Main Menu View Window Parameters
         menuParams = new WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -83,7 +105,6 @@ public class FloatingOverlayService extends Service {
                 setStreamproof(enabled);
             }
         }) {
-            // Override dispatchKeyEvent to guarantee key interception even when collapsed
             @Override
             public boolean dispatchKeyEvent(KeyEvent event) {
                 if (event.getAction() == KeyEvent.ACTION_DOWN) {
@@ -99,11 +120,25 @@ public class FloatingOverlayService extends Service {
             }
         };
 
-        menuView.setFocusable(true);
-        menuView.setFocusableInTouchMode(true);
+        // 2. Invisible 1x1 Keymap Trigger at top-left corner (0, 0)
+        // This allows emulator users to map any key (e.g. PgDn) directly to coordinate (0,0) in keymapper
+        triggerParams = new WindowManager.LayoutParams(
+            1, 1,
+            overlayType,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE |
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            PixelFormat.TRANSLUCENT
+        );
+        triggerParams.gravity = Gravity.TOP | Gravity.START;
+        triggerParams.x = 0;
+        triggerParams.y = 0;
 
-        // Add Menu to WindowManager
+        invisibleTrigger = new View(this);
+        invisibleTrigger.setOnClickListener(v -> toggleMenuVisibility(!isMenuVisible));
+
+        // Add Views to WindowManager
         try {
+            windowManager.addView(invisibleTrigger, triggerParams);
             windowManager.addView(menuView, menuParams);
             menuView.requestFocus();
         } catch (Exception e) {
@@ -128,17 +163,15 @@ public class FloatingOverlayService extends Service {
                     menuView.requestFocus();
                 } catch (Exception ignored) {}
             } else {
-                // Hide menu completely while maintaining key focus so PgDn / PgUp still works
-                menuView.setVisibility(View.INVISIBLE);
+                // Hide menu completely so game controls are 100% free and responsive
+                menuView.setVisibility(View.GONE);
                 menuParams.width = 1;
                 menuParams.height = 1;
-                menuParams.x = -5000;
-                menuParams.y = -5000;
-                menuParams.flags = WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL |
+                menuParams.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE |
+                                   WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE |
                                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS;
                 try {
                     windowManager.updateViewLayout(menuView, menuParams);
-                    menuView.requestFocus();
                 } catch (Exception ignored) {}
             }
         }
@@ -186,7 +219,7 @@ public class FloatingOverlayService extends Service {
 
         return builder
             .setContentTitle("Fluorite Max • Active")
-            .setContentText("Press PgDn / PgUp on keyboard to Show / Hide menu")
+            .setContentText("Press PgDn to Show / Hide menu anytime")
             .setSmallIcon(android.R.drawable.ic_menu_compass)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
@@ -201,8 +234,17 @@ public class FloatingOverlayService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if (windowManager != null && menuView != null) {
-            try { windowManager.removeView(menuView); } catch (Exception ignored) {}
+        try {
+            unregisterReceiver(hotkeyReceiver);
+        } catch (Exception ignored) {}
+
+        if (windowManager != null) {
+            if (menuView != null) {
+                try { windowManager.removeView(menuView); } catch (Exception ignored) {}
+            }
+            if (invisibleTrigger != null) {
+                try { windowManager.removeView(invisibleTrigger); } catch (Exception ignored) {}
+            }
         }
     }
 
