@@ -1,10 +1,7 @@
 package com.fluoritemax.overlay;
 
-import android.app.AlertDialog;
 import android.content.Context;
-import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
@@ -15,7 +12,6 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.FrameLayout;
-import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.SeekBar;
@@ -30,6 +26,10 @@ public class FluoriteMenuView extends FrameLayout {
     public interface MenuListener {
         void onCloseRequested();
         void onDrag(int dx, int dy);
+    }
+
+    public interface DropdownSelectionListener {
+        void onSelected(String option);
     }
 
     private final MenuListener listener;
@@ -51,6 +51,7 @@ public class FluoriteMenuView extends FrameLayout {
     private int activeTab = 0;
     private final List<View> tabButtons = new ArrayList<>();
     private FrameLayout contentContainer;
+    private FrameLayout modalOverlay;
 
     // Drag tracking
     private float lastTouchX, lastTouchY;
@@ -103,6 +104,21 @@ public class FluoriteMenuView extends FrameLayout {
 
         mainLayout.addView(bodyLayout);
         addView(mainLayout);
+
+        // Modal Overlay for Dropdowns
+        modalOverlay = new FrameLayout(ctx);
+        modalOverlay.setLayoutParams(new LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
+        ));
+        modalOverlay.setBackgroundColor(0x99000000);
+        modalOverlay.setVisibility(View.GONE);
+        modalOverlay.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                hideDropdownModal();
+            }
+        });
+        addView(modalOverlay);
 
         // Select default tab
         switchTab(0);
@@ -548,17 +564,68 @@ public class FluoriteMenuView extends FrameLayout {
         btn.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                AlertDialog.Builder builder = new AlertDialog.Builder(ctx, android.R.style.Theme_DeviceDefault_Dialog_Alert);
-                builder.setTitle(title);
-                builder.setItems(options, (dialog, which) -> {
-                    btn.setText(options[which] + "  ▾");
+                showDropdownModal(title, options, new DropdownSelectionListener() {
+                    @Override
+                    public void onSelected(String option) {
+                        btn.setText(option + "  ▾");
+                    }
                 });
-                builder.show();
             }
         });
 
         layout.addView(btn);
         parent.addView(layout);
+    }
+
+    private void showDropdownModal(String title, String[] options, final DropdownSelectionListener callback) {
+        modalOverlay.removeAllViews();
+
+        LinearLayout modalCard = new LinearLayout(ctx);
+        modalCard.setOrientation(LinearLayout.VERTICAL);
+
+        GradientDrawable cardBg = new GradientDrawable();
+        cardBg.setColor(COLOR_BOX_BG);
+        cardBg.setCornerRadius(dp(8));
+        cardBg.setStroke(dp(1), COLOR_ACCENT);
+        modalCard.setBackground(cardBg);
+        modalCard.setPadding(dp(16), dp(14), dp(16), dp(14));
+
+        LayoutParams cardParams = new LayoutParams(dp(280), ViewGroup.LayoutParams.WRAP_CONTENT);
+        cardParams.gravity = Gravity.CENTER;
+        modalCard.setLayoutParams(cardParams);
+
+        TextView titleView = new TextView(ctx);
+        titleView.setText(title);
+        titleView.setTextSize(13);
+        titleView.setTextColor(COLOR_TEXT_MAIN);
+        titleView.setTypeface(null, Typeface.BOLD);
+        titleView.setPadding(0, 0, 0, dp(10));
+        modalCard.addView(titleView);
+
+        for (final String opt : options) {
+            TextView optView = new TextView(ctx);
+            optView.setText(opt);
+            optView.setTextSize(12);
+            optView.setTextColor(COLOR_TEXT_MUTED);
+            optView.setPadding(dp(8), dp(8), dp(8), dp(8));
+
+            optView.setOnClickListener(new OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (callback != null) callback.onSelected(opt);
+                    hideDropdownModal();
+                }
+            });
+            modalCard.addView(optView);
+        }
+
+        modalOverlay.addView(modalCard);
+        modalOverlay.setVisibility(View.VISIBLE);
+    }
+
+    private void hideDropdownModal() {
+        modalOverlay.setVisibility(View.GONE);
+        modalOverlay.removeAllViews();
     }
 
     private Button createButton(String text, int bgColor, int textColor) {
