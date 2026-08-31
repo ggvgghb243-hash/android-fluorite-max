@@ -47,14 +47,14 @@ public class FloatingOverlayService extends Service {
             overlayType = WindowManager.LayoutParams.TYPE_PHONE;
         }
 
-        // 1. Setup Menu View Window Parameters
+        // 1. Setup Menu View Window Parameters with FLAG_SECURE (Screen Record & Screenshot Proof)
         menuParams = new WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             overlayType,
-            // Allow focus so key events (PgUp / PgDown) are received
             WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL |
-            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS |
+            WindowManager.LayoutParams.FLAG_SECURE, // Prevents recording and screenshots
             PixelFormat.TRANSLUCENT
         );
         menuParams.gravity = Gravity.CENTER;
@@ -96,13 +96,14 @@ public class FloatingOverlayService extends Service {
             }
         });
 
-        // 2. Setup Floating Mini Badge Window Parameters
+        // 2. Setup Floating Mini Badge Window Parameters with FLAG_SECURE
         badgeParams = new WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             overlayType,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE |
-            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS |
+            WindowManager.LayoutParams.FLAG_SECURE, // Prevents recording and screenshots
             PixelFormat.TRANSLUCENT
         );
         badgeParams.gravity = Gravity.TOP | Gravity.START;

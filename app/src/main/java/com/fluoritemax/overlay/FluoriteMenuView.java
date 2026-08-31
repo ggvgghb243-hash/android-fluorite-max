@@ -17,6 +17,7 @@ import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 import android.widget.ScrollView;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -49,12 +50,11 @@ public class FluoriteMenuView extends FrameLayout {
     private static final int COLOR_TEXT_LABEL   = 0xFFE2E8F4; // #E2E8F4 Clean text
     private static final int COLOR_TEXT_MUTED   = 0xFF7D8FA9; // #7D8FA9 Steel description text
     private static final int COLOR_DROPDOWN_BG  = 0xFF080D1A; // #080D1A Dropdown box
-    private static final int COLOR_CHECKBOX_OFF = 0xFF0D1424; // #0D1424 Unchecked box bg
+    private static final int COLOR_POPUP_BG     = 0xFF0A0F1E; // #0A0F1E Sleek dropdown menu bg
 
     private int activeTab = 0;
     private final List<SidebarItemView> tabViews = new ArrayList<>();
     private FrameLayout contentFrame;
-    private FrameLayout modalOverlay;
 
     // Drag tracking
     private float lastTouchX, lastTouchY;
@@ -67,7 +67,7 @@ public class FluoriteMenuView extends FrameLayout {
     }
 
     private void initUI() {
-        // Outer Main Window Frame (Enlarged width and height)
+        // Outer Main Window Frame
         LinearLayout windowLayout = new LinearLayout(ctx);
         windowLayout.setOrientation(LinearLayout.HORIZONTAL);
 
@@ -77,9 +77,8 @@ public class FluoriteMenuView extends FrameLayout {
         winBg.setStroke(dp(1.2f), COLOR_BORDER);
         windowLayout.setBackground(winBg);
 
-        // Enlarged UI dimensions
-        int menuWidth = dp(520);
-        int menuHeight = dp(355);
+        int menuWidth = dp(490);
+        int menuHeight = dp(330);
         LayoutParams params = new LayoutParams(menuWidth, menuHeight);
         windowLayout.setLayoutParams(params);
 
@@ -93,20 +92,10 @@ public class FluoriteMenuView extends FrameLayout {
             0, ViewGroup.LayoutParams.MATCH_PARENT, 1.0f
         );
         contentFrame.setLayoutParams(contentParams);
-        contentFrame.setPadding(dp(12), dp(10), dp(14), dp(10));
+        contentFrame.setPadding(dp(10), dp(10), dp(12), dp(10));
         windowLayout.addView(contentFrame);
 
         addView(windowLayout);
-
-        // Modal Overlay for Dropdowns
-        modalOverlay = new FrameLayout(ctx);
-        modalOverlay.setLayoutParams(new LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
-        ));
-        modalOverlay.setBackgroundColor(0xAA000000);
-        modalOverlay.setVisibility(View.GONE);
-        modalOverlay.setOnClickListener(v -> hideDropdownModal());
-        addView(modalOverlay);
 
         // Window Dragging
         windowLayout.setOnTouchListener((v, event) -> {
@@ -133,7 +122,7 @@ public class FluoriteMenuView extends FrameLayout {
     private View createSidebar() {
         LinearLayout sidebar = new LinearLayout(ctx);
         sidebar.setOrientation(LinearLayout.VERTICAL);
-        sidebar.setLayoutParams(new LinearLayout.LayoutParams(dp(82), ViewGroup.LayoutParams.MATCH_PARENT));
+        sidebar.setLayoutParams(new LinearLayout.LayoutParams(dp(76), ViewGroup.LayoutParams.MATCH_PARENT));
 
         GradientDrawable sideBg = new GradientDrawable();
         sideBg.setColor(COLOR_SIDEBAR_BG);
@@ -155,9 +144,9 @@ public class FluoriteMenuView extends FrameLayout {
             final int index = i;
             SidebarItemView item = new SidebarItemView(ctx, iconTypes[i], tabNames[i]);
             LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, dp(58)
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(54)
             );
-            p.setMargins(dp(6), dp(2), dp(6), dp(2));
+            p.setMargins(dp(5), dp(2), dp(5), dp(2));
             item.setLayoutParams(p);
 
             item.setOnClickListener(v -> switchTab(index));
@@ -166,7 +155,7 @@ public class FluoriteMenuView extends FrameLayout {
             sidebar.addView(item);
         }
 
-        // Empty space below Settings matching Screenshot 1 red-box annotation
+        // Empty space below Settings
         View emptyBottomSpace = new View(ctx);
         LinearLayout.LayoutParams emptyParams = new LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, 0, 1.0f
@@ -207,7 +196,7 @@ public class FluoriteMenuView extends FrameLayout {
         // Checkbox: Master switch (default unchecked)
         addCheckbox(list, "Master switch", false, null);
 
-        // Dropdown: Aiming method
+        // Dropdown: Aiming method (Clean slim design)
         addDropdown(list, "Aiming method", "Silent aimbot", new String[]{
             "Silent aimbot", "Memory aimbot", "Bullet tracking", "FOV smooth snap"
         });
@@ -408,7 +397,7 @@ public class FluoriteMenuView extends FrameLayout {
         LinearLayout topBanner = new LinearLayout(ctx);
         topBanner.setOrientation(LinearLayout.HORIZONTAL);
         topBanner.setGravity(Gravity.CENTER_VERTICAL);
-        topBanner.setPadding(dp(12), dp(8), dp(12), dp(8));
+        topBanner.setPadding(dp(12), dp(7), dp(12), dp(7));
 
         GradientDrawable bannerBg = new GradientDrawable();
         bannerBg.setColor(COLOR_CARD_HEADER);
@@ -418,7 +407,7 @@ public class FluoriteMenuView extends FrameLayout {
 
         // Vector Icon in header
         VectorIconView headerIcon = new VectorIconView(ctx, iconType, COLOR_ACCENT_BLUE);
-        LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(dp(16), dp(16));
+        LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(dp(15), dp(15));
         iconParams.setMargins(0, 0, dp(8), 0);
         headerIcon.setLayoutParams(iconParams);
         topBanner.addView(headerIcon);
@@ -426,27 +415,27 @@ public class FluoriteMenuView extends FrameLayout {
         TextView titleText = new TextView(ctx);
         titleText.setText(title + "  ");
         titleText.setTextColor(COLOR_ACCENT_BLUE);
-        titleText.setTextSize(12.5f);
+        titleText.setTextSize(12);
         titleText.setTypeface(null, Typeface.BOLD);
         topBanner.addView(titleText);
 
         TextView divider = new TextView(ctx);
         divider.setText("|   ");
         divider.setTextColor(COLOR_TEXT_MUTED);
-        divider.setTextSize(12.5f);
+        divider.setTextSize(12);
         topBanner.addView(divider);
 
-        // Replaced marked subtitle text with "Fluorite Max"
+        // Subtitle text: Fluorite Max
         TextView subtitleText = new TextView(ctx);
         subtitleText.setText(subtitle);
         subtitleText.setTextColor(COLOR_TEXT_MUTED);
-        subtitleText.setTextSize(12);
+        subtitleText.setTextSize(11.5f);
         topBanner.addView(subtitleText);
 
         LinearLayout.LayoutParams bannerParams = new LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
         );
-        bannerParams.setMargins(0, 0, 0, dp(10));
+        bannerParams.setMargins(0, 0, 0, dp(8));
         topBanner.setLayoutParams(bannerParams);
 
         base.addView(topBanner);
@@ -457,7 +446,7 @@ public class FluoriteMenuView extends FrameLayout {
         LinearLayout row = new LinearLayout(ctx);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(0, dp(3), 0, dp(3));
+        row.setPadding(0, dp(2), 0, dp(2));
 
         CheckBox cb = new CheckBox(ctx);
         cb.setChecked(defaultChecked);
@@ -467,7 +456,7 @@ public class FluoriteMenuView extends FrameLayout {
 
         TextView label = new TextView(ctx);
         label.setText(title);
-        label.setTextSize(12.5f);
+        label.setTextSize(12);
         label.setTextColor(COLOR_TEXT_LABEL);
         label.setOnClickListener(v -> cb.setChecked(!cb.isChecked()));
         row.addView(label);
@@ -479,7 +468,7 @@ public class FluoriteMenuView extends FrameLayout {
         LinearLayout row = new LinearLayout(ctx);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(0, dp(3), 0, dp(3));
+        row.setPadding(0, dp(2), 0, dp(2));
 
         CheckBox cb = new CheckBox(ctx);
         cb.setChecked(defaultChecked);
@@ -489,7 +478,7 @@ public class FluoriteMenuView extends FrameLayout {
 
         TextView label = new TextView(ctx);
         label.setText(title);
-        label.setTextSize(12.5f);
+        label.setTextSize(12);
         label.setTextColor(COLOR_TEXT_LABEL);
         label.setOnClickListener(v -> cb.setChecked(!cb.isChecked()));
         row.addView(label, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
@@ -504,7 +493,7 @@ public class FluoriteMenuView extends FrameLayout {
         LinearLayout row = new LinearLayout(ctx);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(0, dp(3), 0, dp(3));
+        row.setPadding(0, dp(2), 0, dp(2));
 
         CheckBox cb = new CheckBox(ctx);
         cb.setChecked(defaultChecked);
@@ -514,7 +503,7 @@ public class FluoriteMenuView extends FrameLayout {
 
         TextView label = new TextView(ctx);
         label.setText(title);
-        label.setTextSize(12.5f);
+        label.setTextSize(12);
         label.setTextColor(COLOR_TEXT_LABEL);
         label.setOnClickListener(v -> cb.setChecked(!cb.isChecked()));
         row.addView(label, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
@@ -534,8 +523,8 @@ public class FluoriteMenuView extends FrameLayout {
 
     private View createColorPill(int color) {
         View pill = new View(ctx);
-        int w = dp(18);
-        int h = dp(15);
+        int w = dp(16);
+        int h = dp(14);
         LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(w, h);
         p.setMargins(dp(2), 0, dp(4), 0);
         pill.setLayoutParams(p);
@@ -547,52 +536,98 @@ public class FluoriteMenuView extends FrameLayout {
         return pill;
     }
 
-    private void addDropdown(LinearLayout parent, final String label, String defaultValue, final String[] options) {
+    // Slim, elegant dropdown input with smooth anchored popup
+    private void addDropdown(LinearLayout parent, final String label, final String defaultValue, final String[] options) {
         LinearLayout layout = new LinearLayout(ctx);
         layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(0, dp(3), 0, dp(5));
+        layout.setPadding(0, dp(2), 0, dp(4));
 
         TextView labelView = new TextView(ctx);
         labelView.setText(label);
-        labelView.setTextSize(12.5f);
+        labelView.setTextSize(12);
         labelView.setTextColor(COLOR_TEXT_LABEL);
-        labelView.setPadding(dp(2), 0, 0, dp(3));
+        labelView.setPadding(dp(2), 0, 0, dp(2));
         layout.addView(labelView);
 
-        final Button btn = new Button(ctx);
-        btn.setText(defaultValue + "                                    ▾");
-        btn.setTextSize(11.5f);
-        btn.setTextColor(COLOR_TEXT_WHITE);
-        btn.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
-        btn.setPadding(dp(12), dp(7), dp(12), dp(7));
+        // Slim dropdown box container
+        final LinearLayout box = new LinearLayout(ctx);
+        box.setOrientation(LinearLayout.HORIZONTAL);
+        box.setGravity(Gravity.CENTER_VERTICAL);
+        box.setPadding(dp(10), dp(6), dp(10), dp(6));
 
         GradientDrawable btnBg = new GradientDrawable();
         btnBg.setColor(COLOR_DROPDOWN_BG);
         btnBg.setCornerRadius(dp(5));
         btnBg.setStroke(dp(1), COLOR_BORDER);
-        btn.setBackground(btnBg);
+        box.setBackground(btnBg);
 
-        btn.setOnClickListener(v -> {
-            showDropdownModal(label, options, selected -> {
-                btn.setText(selected + "                                    ▾");
-            });
+        final TextView valText = new TextView(ctx);
+        valText.setText(defaultValue);
+        valText.setTextSize(11.5f);
+        valText.setTextColor(COLOR_TEXT_WHITE);
+        box.addView(valText, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
+
+        TextView arrow = new TextView(ctx);
+        arrow.setText("▾");
+        arrow.setTextSize(11.5f);
+        arrow.setTextColor(COLOR_TEXT_MUTED);
+        box.addView(arrow);
+
+        box.setOnClickListener(v -> {
+            showDropdownPopup(box, valText, options);
         });
 
-        layout.addView(btn);
+        layout.addView(box);
         parent.addView(layout);
+    }
+
+    private void showDropdownPopup(View anchor, final TextView valueView, final String[] options) {
+        final PopupWindow popup = new PopupWindow(ctx);
+
+        LinearLayout popupLayout = new LinearLayout(ctx);
+        popupLayout.setOrientation(LinearLayout.VERTICAL);
+
+        GradientDrawable popupBg = new GradientDrawable();
+        popupBg.setColor(COLOR_POPUP_BG);
+        popupBg.setCornerRadius(dp(6));
+        popupBg.setStroke(dp(1.2f), COLOR_ACCENT_BLUE);
+        popupLayout.setBackground(popupBg);
+        popupLayout.setPadding(dp(6), dp(4), dp(6), dp(4));
+
+        for (final String opt : options) {
+            TextView optView = new TextView(ctx);
+            optView.setText(opt);
+            optView.setTextSize(11.5f);
+            optView.setTextColor(COLOR_TEXT_LABEL);
+            optView.setPadding(dp(10), dp(7), dp(10), dp(7));
+
+            optView.setOnClickListener(v -> {
+                valueView.setText(opt);
+                popup.dismiss();
+            });
+            popupLayout.addView(optView);
+        }
+
+        popup.setContentView(popupLayout);
+        popup.setWidth(anchor.getWidth());
+        popup.setHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
+        popup.setFocusable(true);
+        popup.setOutsideTouchable(true);
+        popup.setBackgroundDrawable(new GradientDrawable()); // Transparent
+        popup.showAsDropDown(anchor, 0, dp(3));
     }
 
     private void addSlider(LinearLayout parent, final String title, float defaultValue, final float min, final float max, final String unit, final int decimals) {
         LinearLayout layout = new LinearLayout(ctx);
         layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(0, dp(4), 0, dp(4));
+        layout.setPadding(0, dp(3), 0, dp(3));
 
         LinearLayout topRow = new LinearLayout(ctx);
         topRow.setOrientation(LinearLayout.HORIZONTAL);
 
         TextView titleView = new TextView(ctx);
         titleView.setText(title);
-        titleView.setTextSize(12.5f);
+        titleView.setTextSize(12);
         titleView.setTextColor(COLOR_TEXT_LABEL);
         topRow.addView(titleView, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
 
@@ -635,10 +670,10 @@ public class FluoriteMenuView extends FrameLayout {
     private Button createActionPillButton(String text, int bgColor, int textColor) {
         Button btn = new Button(ctx);
         btn.setText(text);
-        btn.setTextSize(12.5f);
+        btn.setTextSize(12);
         btn.setTextColor(textColor);
         btn.setTypeface(null, Typeface.BOLD);
-        btn.setPadding(0, dp(9), 0, dp(9));
+        btn.setPadding(0, dp(8), 0, dp(8));
 
         GradientDrawable bg = new GradientDrawable();
         bg.setColor(bgColor);
@@ -651,54 +686,6 @@ public class FluoriteMenuView extends FrameLayout {
         p.setMargins(0, dp(6), 0, dp(4));
         btn.setLayoutParams(p);
         return btn;
-    }
-
-    private void showDropdownModal(String title, String[] options, final DropdownSelectionListener callback) {
-        modalOverlay.removeAllViews();
-
-        LinearLayout modalCard = new LinearLayout(ctx);
-        modalCard.setOrientation(LinearLayout.VERTICAL);
-
-        GradientDrawable cardBg = new GradientDrawable();
-        cardBg.setColor(COLOR_DROPDOWN_BG);
-        cardBg.setCornerRadius(dp(8));
-        cardBg.setStroke(dp(1.2f), COLOR_ACCENT_BLUE);
-        modalCard.setBackground(cardBg);
-        modalCard.setPadding(dp(16), dp(12), dp(16), dp(12));
-
-        LayoutParams cardParams = new LayoutParams(dp(280), ViewGroup.LayoutParams.WRAP_CONTENT);
-        cardParams.gravity = Gravity.CENTER;
-        modalCard.setLayoutParams(cardParams);
-
-        TextView titleView = new TextView(ctx);
-        titleView.setText(title);
-        titleView.setTextSize(13);
-        titleView.setTextColor(COLOR_TEXT_WHITE);
-        titleView.setTypeface(null, Typeface.BOLD);
-        titleView.setPadding(0, 0, 0, dp(8));
-        modalCard.addView(titleView);
-
-        for (final String opt : options) {
-            TextView optView = new TextView(ctx);
-            optView.setText(opt);
-            optView.setTextSize(12);
-            optView.setTextColor(COLOR_TEXT_LABEL);
-            optView.setPadding(dp(6), dp(8), dp(6), dp(8));
-
-            optView.setOnClickListener(v -> {
-                if (callback != null) callback.onSelected(opt);
-                hideDropdownModal();
-            });
-            modalCard.addView(optView);
-        }
-
-        modalOverlay.addView(modalCard);
-        modalOverlay.setVisibility(View.VISIBLE);
-    }
-
-    private void hideDropdownModal() {
-        modalOverlay.setVisibility(View.GONE);
-        modalOverlay.removeAllViews();
     }
 
     private int dp(float value) {
@@ -719,7 +706,7 @@ public class FluoriteMenuView extends FrameLayout {
             this.iconType = iconType;
             strokePaint.setColor(color);
             strokePaint.setStyle(Paint.Style.STROKE);
-            strokePaint.setStrokeWidth(2.5f);
+            strokePaint.setStrokeWidth(2.2f);
             strokePaint.setStrokeCap(Paint.Cap.ROUND);
             strokePaint.setStrokeJoin(Paint.Join.ROUND);
 
@@ -850,24 +837,24 @@ public class FluoriteMenuView extends FrameLayout {
             inner.setLayoutParams(innerParams);
 
             iconView = new VectorIconView(context, iconType, COLOR_TEXT_MUTED);
-            int iconSize = Math.round(18 * getResources().getDisplayMetrics().density);
+            int iconSize = Math.round(17 * getResources().getDisplayMetrics().density);
             iconView.setLayoutParams(new LayoutParams(iconSize, iconSize));
             inner.addView(iconView);
 
             labelView = new TextView(context);
             labelView.setText(title);
-            labelView.setTextSize(10.5f);
+            labelView.setTextSize(10);
             labelView.setTextColor(COLOR_TEXT_MUTED);
             labelView.setGravity(Gravity.CENTER);
-            labelView.setPadding(0, Math.round(3 * getResources().getDisplayMetrics().density), 0, 0);
+            labelView.setPadding(0, Math.round(2 * getResources().getDisplayMetrics().density), 0, 0);
             inner.addView(labelView);
 
             addView(inner);
 
-            // Vertical Right Indicator Bar (like in Screenshots)
+            // Vertical Right Indicator Bar
             indicator = new View(context);
             int barW = Math.round(3.0f * getResources().getDisplayMetrics().density);
-            LayoutParams barParams = new LayoutParams(barW, Math.round(24 * getResources().getDisplayMetrics().density));
+            LayoutParams barParams = new LayoutParams(barW, Math.round(22 * getResources().getDisplayMetrics().density));
             indicator.setLayoutParams(barParams);
             indicator.setVisibility(GONE);
 
