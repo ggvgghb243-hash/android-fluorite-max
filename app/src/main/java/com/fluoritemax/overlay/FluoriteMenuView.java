@@ -4,6 +4,8 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
@@ -38,18 +40,19 @@ public class FluoriteMenuView extends FrameLayout {
     private final Context ctx;
 
     // Exact Theme Colors from Screenshots
-    private static final int COLOR_WINDOW_BG    = 0xF0070B14; // #070B14 Dark translucent navy
-    private static final int COLOR_SIDEBAR_BG   = 0xFF05080E; // #05080E Deep blackish navy
-    private static final int COLOR_CARD_HEADER  = 0xFF0A0F1D; // #0A0F1D Top banner inside content
-    private static final int COLOR_BORDER       = 0xFF141F36; // #141F36 Subtle dark blue border
-    private static final int COLOR_ACCENT_BLUE  = 0xFF1B64FF; // #1B64FF Electric vibrant blue
-    private static final int COLOR_TEXT_WHITE   = 0xFFFFFFFF; // #FFFFFF Crisp white
-    private static final int COLOR_TEXT_LABEL   = 0xFFE1E7F5; // #E1E7F5 Off-white for labels
-    private static final int COLOR_TEXT_MUTED   = 0xFF7D8FA9; // #7D8FA9 Steel gray for descriptions
-    private static final int COLOR_DROPDOWN_BG  = 0xFF0B1020; // #0B1020 Dark input fields
+    private static final int COLOR_WINDOW_BG    = 0xF5050811; // #050811 Dark sleek translucent
+    private static final int COLOR_SIDEBAR_BG   = 0xFF04060C; // #04060C Deep black-navy
+    private static final int COLOR_CARD_HEADER  = 0xFF080D1A; // #080D1A Header banner
+    private static final int COLOR_BORDER       = 0xFF141F38; // #141F38 Subtle crisp border
+    private static final int COLOR_ACCENT_BLUE  = 0xFF1B64FF; // #1B64FF Vibrant royal blue
+    private static final int COLOR_TEXT_WHITE   = 0xFFFFFFFF; // #FFFFFF Pure white
+    private static final int COLOR_TEXT_LABEL   = 0xFFE2E8F4; // #E2E8F4 Clean text
+    private static final int COLOR_TEXT_MUTED   = 0xFF7D8FA9; // #7D8FA9 Steel description text
+    private static final int COLOR_DROPDOWN_BG  = 0xFF080D1A; // #080D1A Dropdown box
+    private static final int COLOR_CHECKBOX_OFF = 0xFF0D1424; // #0D1424 Unchecked box bg
 
     private int activeTab = 0;
-    private final List<LinearLayout> tabLayouts = new ArrayList<>();
+    private final List<SidebarItemView> tabViews = new ArrayList<>();
     private FrameLayout contentFrame;
     private FrameLayout modalOverlay;
 
@@ -74,12 +77,12 @@ public class FluoriteMenuView extends FrameLayout {
         winBg.setStroke(dp(1.2f), COLOR_BORDER);
         windowLayout.setBackground(winBg);
 
-        int menuWidth = dp(460);
-        int menuHeight = dp(310);
+        int menuWidth = dp(470);
+        int menuHeight = dp(315);
         LayoutParams params = new LayoutParams(menuWidth, menuHeight);
         windowLayout.setLayoutParams(params);
 
-        // 1. Sidebar (Left Column)
+        // 1. Sidebar (Left Column with Custom Vector Glyphs)
         View sidebar = createSidebar();
         windowLayout.addView(sidebar);
 
@@ -94,7 +97,7 @@ public class FluoriteMenuView extends FrameLayout {
 
         addView(windowLayout);
 
-        // Modal Overlay for Dropdown selections
+        // Modal Overlay for Dropdowns
         modalOverlay = new FrameLayout(ctx);
         modalOverlay.setLayoutParams(new LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
@@ -104,7 +107,7 @@ public class FluoriteMenuView extends FrameLayout {
         modalOverlay.setOnClickListener(v -> hideDropdownModal());
         addView(modalOverlay);
 
-        // Enable Dragging on whole menu or blank areas
+        // Window Dragging
         windowLayout.setOnTouchListener((v, event) -> {
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
@@ -122,57 +125,44 @@ public class FluoriteMenuView extends FrameLayout {
             return false;
         });
 
-        // Show default tab (Aimbot)
+        // Default tab (Aimbot)
         switchTab(0);
     }
 
     private View createSidebar() {
         LinearLayout sidebar = new LinearLayout(ctx);
         sidebar.setOrientation(LinearLayout.VERTICAL);
-        sidebar.setLayoutParams(new LinearLayout.LayoutParams(dp(72), ViewGroup.LayoutParams.MATCH_PARENT));
+        sidebar.setLayoutParams(new LinearLayout.LayoutParams(dp(76), ViewGroup.LayoutParams.MATCH_PARENT));
 
         GradientDrawable sideBg = new GradientDrawable();
         sideBg.setColor(COLOR_SIDEBAR_BG);
         sideBg.setCornerRadii(new float[]{dp(14), dp(14), 0, 0, 0, 0, dp(14), dp(14)});
         sidebar.setBackground(sideBg);
-        sidebar.setPadding(0, dp(10), 0, dp(10));
+        sidebar.setPadding(0, dp(6), 0, dp(6));
         sidebar.setGravity(Gravity.CENTER_HORIZONTAL);
 
         String[] tabNames = {"Aimbot", "Visuals", "Misc", "Settings"};
-        String[] icons = {"🎯", "👁", "🧰", "⚙"};
+        int[] iconTypes = {
+            SidebarItemView.ICON_AIMBOT,
+            SidebarItemView.ICON_VISUALS,
+            SidebarItemView.ICON_MISC,
+            SidebarItemView.ICON_SETTINGS
+        };
 
-        tabLayouts.clear();
+        tabViews.clear();
         for (int i = 0; i < tabNames.length; i++) {
             final int index = i;
-            LinearLayout tab = new LinearLayout(ctx);
-            tab.setOrientation(LinearLayout.VERTICAL);
-            tab.setGravity(Gravity.CENTER);
-            tab.setPadding(0, dp(10), 0, dp(10));
+            SidebarItemView item = new SidebarItemView(ctx, iconTypes[i], tabNames[i]);
             LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1.0f
             );
-            tab.setLayoutParams(p);
+            p.setMargins(dp(5), dp(3), dp(5), dp(3));
+            item.setLayoutParams(p);
 
-            // Icon
-            TextView iconView = new TextView(ctx);
-            iconView.setText(icons[i]);
-            iconView.setTextSize(18);
-            iconView.setGravity(Gravity.CENTER);
-            tab.addView(iconView);
+            item.setOnClickListener(v -> switchTab(index));
 
-            // Label
-            TextView label = new TextView(ctx);
-            label.setText(tabNames[i]);
-            label.setTextSize(11);
-            label.setGravity(Gravity.CENTER);
-            label.setTypeface(null, Typeface.NORMAL);
-            label.setPadding(0, dp(3), 0, 0);
-            tab.addView(label);
-
-            tab.setOnClickListener(v -> switchTab(index));
-
-            tabLayouts.add(tab);
-            sidebar.addView(tab);
+            tabViews.add(item);
+            sidebar.addView(item);
         }
 
         return sidebar;
@@ -181,25 +171,10 @@ public class FluoriteMenuView extends FrameLayout {
     private void switchTab(int index) {
         activeTab = index;
 
-        // Update active sidebar pill highlight and vertical indicator bar
-        for (int i = 0; i < tabLayouts.size(); i++) {
-            LinearLayout tab = tabLayouts.get(i);
-            TextView label = (TextView) tab.getChildAt(1);
-
-            if (i == index) {
-                GradientDrawable activeBg = new GradientDrawable();
-                activeBg.setColor(0x331B64FF);
-                activeBg.setCornerRadius(dp(8));
-                activeBg.setStroke(dp(1.2f), COLOR_ACCENT_BLUE);
-                tab.setBackground(activeBg);
-                label.setTextColor(COLOR_TEXT_WHITE);
-            } else {
-                tab.setBackgroundColor(Color.TRANSPARENT);
-                label.setTextColor(COLOR_TEXT_MUTED);
-            }
+        for (int i = 0; i < tabViews.size(); i++) {
+            tabViews.get(i).setSelected(i == index);
         }
 
-        // Render Active Tab Views
         contentFrame.removeAllViews();
         switch (index) {
             case 0: contentFrame.addView(createAimbotView()); break;
@@ -213,7 +188,7 @@ public class FluoriteMenuView extends FrameLayout {
     // 1. AIMBOT TAB (Exact match to Screenshot 4)
     // ==========================================
     private View createAimbotView() {
-        LinearLayout layout = createContentBase("AIMBOT", "Automatically aim at enemies.", "🎯");
+        LinearLayout layout = createContentBase("AIMBOT", "Automatically aim at enemies.", SidebarItemView.ICON_AIMBOT);
         ScrollView scroll = new ScrollView(ctx);
         scroll.setVerticalScrollBarEnabled(false);
 
@@ -228,7 +203,7 @@ public class FluoriteMenuView extends FrameLayout {
             "Silent aimbot", "Memory aimbot", "Bullet tracking", "FOV smooth snap"
         });
 
-        // Checkbox: Show FOV circle with white color badge
+        // Checkbox: Show FOV circle with white square preview
         addCheckboxWithColorBadge(list, "Show FOV circle", true, 0xFFFFFFFF, null);
 
         // Slider: FOV radius (60.0°)
@@ -251,7 +226,7 @@ public class FluoriteMenuView extends FrameLayout {
     // 2. VISUALS TAB (Exact match to Screenshot 3)
     // ==========================================
     private View createVisualsView() {
-        LinearLayout layout = createContentBase("VISUALS", "Visual improvements.", "👁");
+        LinearLayout layout = createContentBase("VISUALS", "Visual improvements.", SidebarItemView.ICON_VISUALS);
         ScrollView scroll = new ScrollView(ctx);
         scroll.setVerticalScrollBarEnabled(false);
 
@@ -300,7 +275,7 @@ public class FluoriteMenuView extends FrameLayout {
     // 3. MISC TAB (Exact match to Screenshot 2)
     // ==========================================
     private View createMiscView() {
-        LinearLayout layout = createContentBase("MISC", "Game enhancements.", "🧰");
+        LinearLayout layout = createContentBase("MISC", "Game enhancements.", SidebarItemView.ICON_MISC);
         ScrollView scroll = new ScrollView(ctx);
         scroll.setVerticalScrollBarEnabled(false);
 
@@ -340,7 +315,7 @@ public class FluoriteMenuView extends FrameLayout {
     // 4. SETTINGS TAB (Exact match to Screenshot 1)
     // ==========================================
     private View createSettingsView() {
-        LinearLayout layout = createContentBase("SETTINGS", "Configure options.", "⚙");
+        LinearLayout layout = createContentBase("SETTINGS", "Configure options.", SidebarItemView.ICON_SETTINGS);
         ScrollView scroll = new ScrollView(ctx);
         scroll.setVerticalScrollBarEnabled(false);
 
@@ -374,18 +349,13 @@ public class FluoriteMenuView extends FrameLayout {
         accentRow.addView(colorBadge);
         list.addView(accentRow);
 
-        // Subscription time & build info (Blue highlight text)
+        // Subscription time (Blue highlighted values)
         TextView subInfo = new TextView(ctx);
-        subInfo.setText("Subscription time left: ");
-        subInfo.setTextColor(COLOR_TEXT_WHITE);
+        subInfo.setText("Subscription time left: 16 days, 23 hours, 52 minutes, 26 seconds");
+        subInfo.setTextColor(COLOR_ACCENT_BLUE);
         subInfo.setTextSize(11);
-
-        TextView subTime = new TextView(ctx);
-        subTime.setText("Subscription time left: 16 days, 23 hours, 52 minutes, 26 seconds");
-        subTime.setTextColor(COLOR_ACCENT_BLUE);
-        subTime.setTextSize(11);
-        subTime.setPadding(0, dp(2), 0, 0);
-        list.addView(subTime);
+        subInfo.setPadding(0, dp(2), 0, 0);
+        list.addView(subInfo);
 
         TextView buildInfo = new TextView(ctx);
         buildInfo.setText("Build at Jan 20 2026 22:05:22 - 1.7.1 for game version 1.120.X");
@@ -420,7 +390,7 @@ public class FluoriteMenuView extends FrameLayout {
     // ==========================================
     // UI HELPER COMPONENTS
     // ==========================================
-    private LinearLayout createContentBase(String title, String subtitle, String icon) {
+    private LinearLayout createContentBase(String title, String subtitle, int iconType) {
         LinearLayout base = new LinearLayout(ctx);
         base.setOrientation(LinearLayout.VERTICAL);
         base.setLayoutParams(new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -429,7 +399,7 @@ public class FluoriteMenuView extends FrameLayout {
         LinearLayout topBanner = new LinearLayout(ctx);
         topBanner.setOrientation(LinearLayout.HORIZONTAL);
         topBanner.setGravity(Gravity.CENTER_VERTICAL);
-        topBanner.setPadding(dp(10), dp(8), dp(10), dp(8));
+        topBanner.setPadding(dp(10), dp(7), dp(10), dp(7));
 
         GradientDrawable bannerBg = new GradientDrawable();
         bannerBg.setColor(COLOR_CARD_HEADER);
@@ -437,10 +407,12 @@ public class FluoriteMenuView extends FrameLayout {
         bannerBg.setStroke(dp(1), COLOR_BORDER);
         topBanner.setBackground(bannerBg);
 
-        TextView iconText = new TextView(ctx);
-        iconText.setText(icon + " ");
-        iconText.setTextSize(12);
-        topBanner.addView(iconText);
+        // Vector Icon in header
+        VectorIconView headerIcon = new VectorIconView(ctx, iconType, COLOR_ACCENT_BLUE);
+        LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(dp(16), dp(16));
+        iconParams.setMargins(0, 0, dp(6), 0);
+        headerIcon.setLayoutParams(iconParams);
+        topBanner.addView(headerIcon);
 
         TextView titleText = new TextView(ctx);
         titleText.setText(title + "  ");
@@ -722,5 +694,199 @@ public class FluoriteMenuView extends FrameLayout {
     private int dp(float value) {
         float density = getResources().getDisplayMetrics().density;
         return Math.round(value * density);
+    }
+
+    // =========================================================
+    // CUSTOM VECTOR ICON DRAWING VIEW (NO EMOJIS - EXACT GLYPHS)
+    // =========================================================
+    public static class VectorIconView extends View {
+        private final int iconType;
+        private final Paint strokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+        public VectorIconView(Context context, int iconType, int color) {
+            super(context);
+            this.iconType = iconType;
+            strokePaint.setColor(color);
+            strokePaint.setStyle(Paint.Style.STROKE);
+            strokePaint.setStrokeWidth(2.5f);
+            strokePaint.setStrokeCap(Paint.Cap.ROUND);
+            strokePaint.setStrokeJoin(Paint.Join.ROUND);
+
+            fillPaint.setColor(color);
+            fillPaint.setStyle(Paint.Style.FILL);
+        }
+
+        public void setColor(int color) {
+            strokePaint.setColor(color);
+            fillPaint.setColor(color);
+            invalidate();
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            float w = getWidth();
+            float h = getHeight();
+            float cx = w / 2.0f;
+            float cy = h / 2.0f;
+            float r = (Math.min(w, h) / 2.0f) - 3.0f;
+
+            switch (iconType) {
+                case SidebarItemView.ICON_AIMBOT: {
+                    // Crosshair Circle
+                    canvas.drawCircle(cx, cy, r, strokePaint);
+                    // 4 Crosshair Ticks
+                    float tick = 3.5f;
+                    canvas.drawLine(cx, cy - r - tick, cx, cy - r + 2.0f, strokePaint);
+                    canvas.drawLine(cx, cy + r - 2.0f, cx, cy + r + tick, strokePaint);
+                    canvas.drawLine(cx - r - tick, cy, cx - r + 2.0f, cy, strokePaint);
+                    canvas.drawLine(cx + r - 2.0f, cy, cx + r + tick, cy, strokePaint);
+                    // Center Dot
+                    canvas.drawCircle(cx, cy, 2.0f, fillPaint);
+                    break;
+                }
+                case SidebarItemView.ICON_VISUALS: {
+                    // Eye Outline Curves
+                    Path eyePath = new Path();
+                    float ew = w - 6.0f;
+                    float eh = h - 10.0f;
+                    eyePath.moveTo(cx - ew / 2.0f, cy);
+                    eyePath.quadTo(cx, cy - eh / 1.3f, cx + ew / 2.0f, cy);
+                    eyePath.quadTo(cx, cy + eh / 1.3f, cx - ew / 2.0f, cy);
+                    eyePath.close();
+                    canvas.drawPath(eyePath, strokePaint);
+                    // Center Pupil
+                    canvas.drawCircle(cx, cy, 3.0f, fillPaint);
+                    break;
+                }
+                case SidebarItemView.ICON_MISC: {
+                    // Briefcase / Toolbox Outline
+                    float bw = w - 8.0f;
+                    float bh = h - 10.0f;
+                    RectF boxRect = new RectF(cx - bw / 2.0f, cy - bh / 2.0f + 2.0f, cx + bw / 2.0f, cy + bh / 2.0f + 2.0f);
+                    canvas.drawRoundRect(boxRect, 3.0f, 3.0f, strokePaint);
+                    // Handle on top
+                    Path handlePath = new Path();
+                    handlePath.moveTo(cx - 4.0f, cy - bh / 2.0f + 2.0f);
+                    handlePath.lineTo(cx - 4.0f, cy - bh / 2.0f - 2.0f);
+                    handlePath.lineTo(cx + 4.0f, cy - bh / 2.0f - 2.0f);
+                    handlePath.lineTo(cx + 4.0f, cy - bh / 2.0f + 2.0f);
+                    canvas.drawPath(handlePath, strokePaint);
+                    // Horizontal divider slot
+                    canvas.drawLine(cx - bw / 2.0f, cy, cx + bw / 2.0f, cy, strokePaint);
+                    break;
+                }
+                case SidebarItemView.ICON_SETTINGS: {
+                    // Gear / Cogwheel
+                    int spokes = 6;
+                    float rOuter = r;
+                    float rInner = r - 3.0f;
+                    Path gear = new Path();
+                    for (int i = 0; i < spokes; i++) {
+                        double a1 = (i * 2.0 * Math.PI / spokes) - 0.25;
+                        double a2 = (i * 2.0 * Math.PI / spokes) + 0.25;
+                        double a3 = ((i + 1) * 2.0 * Math.PI / spokes) - 0.25;
+
+                        float p1x = (float) (cx + rOuter * Math.cos(a1));
+                        float p1y = (float) (cy + rOuter * Math.sin(a1));
+                        float p2x = (float) (cx + rOuter * Math.cos(a2));
+                        float p2y = (float) (cy + rOuter * Math.sin(a2));
+                        float p3x = (float) (cx + rInner * Math.cos(a2 + 0.15));
+                        float p3y = (float) (cy + rInner * Math.sin(a2 + 0.15));
+                        float p4x = (float) (cx + rInner * Math.cos(a3 - 0.15));
+                        float p4y = (float) (cy + rInner * Math.sin(a3 - 0.15));
+
+                        if (i == 0) gear.moveTo(p1x, p1y);
+                        else gear.lineTo(p1x, p1y);
+                        gear.lineTo(p2x, p2y);
+                        gear.lineTo(p3x, p3y);
+                        gear.lineTo(p4x, p4y);
+                    }
+                    gear.close();
+                    canvas.drawPath(gear, strokePaint);
+                    // Center hole
+                    canvas.drawCircle(cx, cy, 3.0f, strokePaint);
+                    break;
+                }
+            }
+        }
+    }
+
+    // =========================================================
+    // SIDEBAR BUTTON VIEW (ICON + TEXT + VERTICAL BLUE INDICATOR)
+    // =========================================================
+    public static class SidebarItemView extends LinearLayout {
+        public static final int ICON_AIMBOT   = 1;
+        public static final int ICON_VISUALS  = 2;
+        public static final int ICON_MISC     = 3;
+        public static final int ICON_SETTINGS = 4;
+
+        private final VectorIconView iconView;
+        private final TextView labelView;
+        private final View indicator;
+        private boolean isSelected = false;
+
+        public SidebarItemView(Context context, int iconType, String title) {
+            super(context);
+            setOrientation(HORIZONTAL);
+            setGravity(Gravity.CENTER_VERTICAL);
+
+            // Container for icon + label
+            LinearLayout inner = new LinearLayout(context);
+            inner.setOrientation(VERTICAL);
+            inner.setGravity(Gravity.CENTER);
+            LayoutParams innerParams = new LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f);
+            inner.setLayoutParams(innerParams);
+
+            iconView = new VectorIconView(context, iconType, COLOR_TEXT_MUTED);
+            int iconSize = Math.round(18 * getResources().getDisplayMetrics().density);
+            iconView.setLayoutParams(new LayoutParams(iconSize, iconSize));
+            inner.addView(iconView);
+
+            labelView = new TextView(context);
+            labelView.setText(title);
+            labelView.setTextSize(10.5f);
+            labelView.setTextColor(COLOR_TEXT_MUTED);
+            labelView.setGravity(Gravity.CENTER);
+            labelView.setPadding(0, Math.round(3 * getResources().getDisplayMetrics().density), 0, 0);
+            inner.addView(labelView);
+
+            addView(inner);
+
+            // Vertical Right Indicator Bar (like in Screenshots)
+            indicator = new View(context);
+            int barW = Math.round(3.0f * getResources().getDisplayMetrics().density);
+            LayoutParams barParams = new LayoutParams(barW, Math.round(24 * getResources().getDisplayMetrics().density));
+            indicator.setLayoutParams(barParams);
+            indicator.setVisibility(GONE);
+
+            GradientDrawable indBg = new GradientDrawable();
+            indBg.setColor(COLOR_ACCENT_BLUE);
+            indBg.setCornerRadii(new float[]{
+                4, 4, 0, 0, 0, 0, 4, 4
+            });
+            indicator.setBackground(indBg);
+            addView(indicator);
+        }
+
+        public void setSelected(boolean selected) {
+            this.isSelected = selected;
+            float d = getResources().getDisplayMetrics().density;
+            if (selected) {
+                GradientDrawable bg = new GradientDrawable();
+                bg.setColor(0x221B64FF);
+                bg.setCornerRadius(6 * d);
+                setBackground(bg);
+                iconView.setColor(COLOR_TEXT_WHITE);
+                labelView.setTextColor(COLOR_TEXT_WHITE);
+                indicator.setVisibility(VISIBLE);
+            } else {
+                setBackgroundColor(Color.TRANSPARENT);
+                iconView.setColor(COLOR_TEXT_MUTED);
+                labelView.setTextColor(COLOR_TEXT_MUTED);
+                indicator.setVisibility(GONE);
+            }
+        }
     }
 }
