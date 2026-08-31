@@ -81,17 +81,15 @@ public class FloatingOverlayService extends Service {
             }
         });
 
-        // Key Listener for PgUp / PgDown hotkey
+        // Dedicated Key Listener for PgDn (PageDown) and PgUp hotkeys
         menuView.setFocusableInTouchMode(true);
         menuView.setOnKeyListener(new View.OnKeyListener() {
             @Override
             public boolean onKey(View v, int keyCode, KeyEvent event) {
                 if (event.getAction() == KeyEvent.ACTION_DOWN) {
-                    if (keyCode == KeyEvent.KEYCODE_PAGE_UP ||
-                        keyCode == KeyEvent.KEYCODE_PAGE_DOWN ||
-                        keyCode == KeyEvent.KEYCODE_INSERT ||
-                        keyCode == KeyEvent.KEYCODE_MOVE_HOME ||
-                        keyCode == KeyEvent.KEYCODE_F1) {
+                    if (keyCode == KeyEvent.KEYCODE_PAGE_DOWN ||
+                        keyCode == KeyEvent.KEYCODE_PAGE_UP ||
+                        keyCode == KeyEvent.KEYCODE_INSERT) {
                         toggleMenuVisibility(!isMenuVisible);
                         return true;
                     }
