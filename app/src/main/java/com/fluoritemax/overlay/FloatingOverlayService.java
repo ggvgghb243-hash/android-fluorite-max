@@ -28,7 +28,7 @@ public class FloatingOverlayService extends Service {
     private WindowManager.LayoutParams badgeParams;
 
     private boolean isMenuVisible = true;
-    private boolean isStreamproofEnabled = false; // Streamproof toggle
+    private boolean isStreamproofEnabled = false;
 
     @Override
     public void onCreate() {
@@ -48,7 +48,7 @@ public class FloatingOverlayService extends Service {
             overlayType = WindowManager.LayoutParams.TYPE_PHONE;
         }
 
-        // 1. Setup Menu View Window Parameters (Normal flags so screenshots work everywhere)
+        // 1. Setup Menu View Window Parameters
         menuParams = new WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -147,6 +147,10 @@ public class FloatingOverlayService extends Service {
             if (show) {
                 menuView.requestFocus();
             }
+        }
+        // When menu is opened, floating badge hides; when menu is closed, badge shows (or both toggle smoothly)
+        if (floatingBadge != null) {
+            floatingBadge.setVisibility(show ? View.GONE : View.VISIBLE);
         }
     }
 
