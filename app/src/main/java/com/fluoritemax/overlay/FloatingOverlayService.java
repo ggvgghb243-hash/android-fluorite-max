@@ -28,7 +28,6 @@ public class FloatingOverlayService extends Service {
     private WindowManager.LayoutParams badgeParams;
 
     private boolean isMenuVisible = true;
-    private boolean isStreamproofEnabled = false;
 
     @Override
     public void onCreate() {
@@ -48,7 +47,7 @@ public class FloatingOverlayService extends Service {
             overlayType = WindowManager.LayoutParams.TYPE_PHONE;
         }
 
-        // 1. Setup Menu View Window Parameters
+        // 1. Main Menu View Window Parameters (Normal flags: screenshots allowed, shows in recording)
         menuParams = new WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -101,13 +100,14 @@ public class FloatingOverlayService extends Service {
             }
         });
 
-        // 2. Setup Floating Mini Badge Window Parameters
+        // 2. Floating Mini Badge Window Parameters with FLAG_SECURE (Invisible in Screen Recording / SS)
         badgeParams = new WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             overlayType,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE |
-            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS |
+            WindowManager.LayoutParams.FLAG_SECURE, // Completely hidden from screen recorders & capture
             PixelFormat.TRANSLUCENT
         );
         badgeParams.gravity = Gravity.TOP | Gravity.START;
@@ -135,6 +135,8 @@ public class FloatingOverlayService extends Service {
             windowManager.addView(floatingBadge, badgeParams);
             windowManager.addView(menuView, menuParams);
             menuView.requestFocus();
+            // Automatically hide floating badge when menu is open so screen is ultra clean
+            updateBadgeVisibility();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -148,24 +150,25 @@ public class FloatingOverlayService extends Service {
                 menuView.requestFocus();
             }
         }
-        // When menu is opened, floating badge hides; when menu is closed, badge shows (or both toggle smoothly)
+        updateBadgeVisibility();
+    }
+
+    private void updateBadgeVisibility() {
         if (floatingBadge != null) {
-            floatingBadge.setVisibility(show ? View.GONE : View.VISIBLE);
+            // When menu is OPEN, hide the floating round icon
+            // When menu is CLOSED, show floating icon with FLAG_SECURE so it is invisible to screen recording
+            floatingBadge.setVisibility(isMenuVisible ? View.GONE : View.VISIBLE);
         }
     }
 
     public void setStreamproof(boolean enabled) {
-        this.isStreamproofEnabled = enabled;
         if (enabled) {
             menuParams.flags |= WindowManager.LayoutParams.FLAG_SECURE;
-            badgeParams.flags |= WindowManager.LayoutParams.FLAG_SECURE;
         } else {
             menuParams.flags &= ~WindowManager.LayoutParams.FLAG_SECURE;
-            badgeParams.flags &= ~WindowManager.LayoutParams.FLAG_SECURE;
         }
         try {
             if (menuView != null) windowManager.updateViewLayout(menuView, menuParams);
-            if (floatingBadge != null) windowManager.updateViewLayout(floatingBadge, badgeParams);
         } catch (Exception ignored) {}
     }
 
