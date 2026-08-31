@@ -22,12 +22,17 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
       - name: Build APK with Gradle
         run: |
-          gradle assembleDebug --no-daemon --stacktrace
+          gradle wrapper
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
           
           mkdir -p output_apk
           cp app/build/outputs/apk/debug/*.apk output_apk/FluoriteMax.apk || cp $(find app/build -name "*.apk" | head -n 1) output_apk/FluoriteMax.apk
